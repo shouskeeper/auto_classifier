@@ -1,0 +1,26 @@
+// Load satellite images of continental US
+var NAIP = ee.ImageCollection('USDA/NAIP/DOQQ')
+  .filterDate('2014-01-01', '2017-01-01');
+var mosaic = NAIP.mosaic()
+
+// Create Feature Collection of Autoplant Locations from Fusion Table
+var autos = ee.FeatureCollection('users/shouskeeper/us_auto_shape');
+
+// Create training variable
+var training = mosaic.sampleRegions({
+  collection: autos,
+  properties: ['operationa'],
+  scale: 300
+})
+
+// Train cart classifier with default parameters
+var trained = ee.Classifier.cart().train(training, 'operationa');
+
+// Classify the NAIP imagery
+var classified = mosaic.classify(trained);
+
+// Display the inputs and the results
+Map.setCenter(-98.35, 39.50, 4);
+Map.addLayer(mosaic, {}, 'NAIP 2017');
+Map.addLayer(classified, {min: 0, max: 1, palette: ['00FF00', 'FF0000']}, //green, red
+  'classification');
